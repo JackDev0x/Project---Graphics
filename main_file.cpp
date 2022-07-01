@@ -27,6 +27,7 @@ Place, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <glm/gtc/matrix_transform.hpp>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 #include <iostream>
 #include "constants.h"
 #include "lodepng.h"
@@ -45,6 +46,18 @@ float cam_speed_x = 0;
 float cam_speed_y = 0;
 float max_cam_speed = 1; //maksymalna prędkość kamery
 
+double auto_time = 0;
+double t1 = 0.5f;
+double t2 = 0.6f;
+int sign = 1;
+
+bool is_pressed_w = false;
+bool is_pressed_s = false;
+bool is_pressed_a = false;
+bool is_pressed_d = false;
+
+bool auto_pilot = true;
+
 float aspectRatio=1;
 
 glm::vec3 cam_position = glm::vec3(0, -25, 20);
@@ -55,8 +68,6 @@ ShaderProgram *sp;
 Model robot; //Model robota
 Model terrain; //Model terenu
 
-bool model_switch = 1;
-
 //Procedura obsługi błędów
 void error_callback(int error, const char* description) {
 	fputs(description, stderr);
@@ -64,29 +75,40 @@ void error_callback(int error, const char* description) {
 
 
 void keyCallback(GLFWwindow* window,int key,int scancode,int action,int mods) {
-    if (action==GLFW_PRESS) {
+	if (action == GLFW_PRESS) {
 		//kamera
-        if (key == GLFW_KEY_LEFT) cam_speed_x= -max_cam_speed;
-        if (key == GLFW_KEY_RIGHT) cam_speed_x= max_cam_speed;
+		if (key == GLFW_KEY_LEFT) cam_speed_x = -max_cam_speed;
+		if (key == GLFW_KEY_RIGHT) cam_speed_x = max_cam_speed;
 		if (key == GLFW_KEY_UP) cam_speed_y = max_cam_speed;
 		if (key == GLFW_KEY_DOWN) cam_speed_y = -max_cam_speed;
 		//robot
-        if (key==GLFW_KEY_A) robot_rotation_speed =PI/2;
-        if (key==GLFW_KEY_D) robot_rotation_speed =-PI/2;
-		if (key == GLFW_KEY_W) robot_speed = max_robot_speed;
-		if (key == GLFW_KEY_S) robot_speed = -max_robot_speed;
+		if (key == GLFW_KEY_A) {
+			robot_rotation_speed = PI / 2;
+			is_pressed_a = true;
+			if (!is_pressed_w && !is_pressed_s)
+				robot_speed = 0;
+		}
+		if (key == GLFW_KEY_D) {
+			robot_rotation_speed = -PI / 2;
+			is_pressed_d = true;
+			if (!is_pressed_w && !is_pressed_s)
+				robot_speed = 0;
+		}
+		if (key == GLFW_KEY_W) { robot_speed = max_robot_speed; is_pressed_w = true; }
+		if (key == GLFW_KEY_S) { robot_speed = -max_robot_speed; is_pressed_s = true; }
     }
     if (action==GLFW_RELEASE) {
 		//kamera
-        if (key==GLFW_KEY_LEFT) cam_speed_x =0;
-        if (key==GLFW_KEY_RIGHT) cam_speed_x =0;
+        if (key==GLFW_KEY_LEFT) cam_speed_x = 0;
+        if (key==GLFW_KEY_RIGHT) cam_speed_x = 0;
 		if (key == GLFW_KEY_UP) cam_speed_y = 0;
 		if (key == GLFW_KEY_DOWN) cam_speed_y = 0;
 		//robot
-        if (key==GLFW_KEY_A) robot_rotation_speed =0;
-        if (key==GLFW_KEY_D) robot_rotation_speed =0;
-		if (key == GLFW_KEY_W) robot_speed = 0;
-		if (key == GLFW_KEY_S) robot_speed = 0;
+		if (key == GLFW_KEY_A) { robot_rotation_speed = 0; is_pressed_a = false; }
+		if(key == GLFW_KEY_D) { robot_rotation_speed = 0; is_pressed_d = false; }
+		if (key == GLFW_KEY_W) { robot_speed = 0; is_pressed_w = false; }
+		if (key == GLFW_KEY_S) { robot_speed = 0; is_pressed_s = false; }
+
     }
 }
 
@@ -211,7 +233,7 @@ void drawScene(GLFWwindow* window,float angle_z, float speed) {
 	//wyliczanie pozycji kamery
 	cam_position += glm::vec3(cam_speed_x, cam_speed_y, 0.0f);
 	cam_looking_p += glm::vec3(cam_speed_x, cam_speed_y,0.0f);
-
+	
 	glm::mat4 M = glm::mat4(1.0f);
 	M = glm::rotate(M, angle_z, glm::vec3(0.0f, 0.0f, 1.0f));
 	M = glm::translate(M, glm::vec3(0.0f, speed, 0.0f));
@@ -269,6 +291,22 @@ void drawScene(GLFWwindow* window,float angle_z, float speed) {
 
 }
 
+void autoPilot() {
+	robot_speed = max_robot_speed;
+	auto_time += glfwGetTime();
+
+	if (auto_time > t1)
+		robot_rotation_speed = sign * PI / 2;
+	if (auto_time > t2) {
+		robot_rotation_speed = 0;
+		auto_time = 0;
+		srand(time(NULL));
+		t1 = (rand() % 50 + 5) / 10.0f;
+		t2 = t1 + (rand() % 20 + 1) / 10.0f;
+		sign = rand() % 2 - 1;
+	}
+}
+
 
 int main(void)
 {
@@ -307,8 +345,13 @@ int main(void)
 	glfwSetTime(0); //Zeruj timer
 	while (!glfwWindowShouldClose(window)) //Tak długo jak okno nie powinno zostać zamknięte
 	{
+		if (!is_pressed_a && !is_pressed_d && !is_pressed_w && !is_pressed_s) {
+			autoPilot();
+		}
+
         angle_z+= robot_rotation_speed*glfwGetTime(); //Zwiększ/zmniejsz kąt obrotu na podstawie prędkości i czasu jaki upłynał od poprzedniej klatki
 		walk_speed += robot_speed * glfwGetTime();
+		
         glfwSetTime(0); //Zeruj timer
 		drawScene(window,angle_z,walk_speed); //Wykonaj procedurę rysującą
 		glfwPollEvents(); //Wykonaj procedury callback w zalezności od zdarzeń jakie zaszły.
