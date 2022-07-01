@@ -1,0 +1,13 @@
+# Blender MTL File: 'robot.blend'
+# Material Count: 1
+
+newmtl Material
+Ns 571.473480
+Ka 0.952756 0.952756 0.952756
+Kd 0.358839 0.358839 0.358839
+Ks 0.405512 0.405512 0.405512
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 3
+map_Kd D:\\Pulpit\\Blender\\misc\\robot_diff.png

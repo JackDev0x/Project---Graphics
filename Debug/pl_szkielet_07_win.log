@@ -1,0 +1,9 @@
+﻿  main_file.cpp
+D:\Pulpit\GIT\grafika\Project---Graphics\main_file.cpp(114,20): warning C4018: '<': signed/unsigned mismatch
+D:\Pulpit\GIT\grafika\Project---Graphics\main_file.cpp(131,20): warning C4018: '<': signed/unsigned mismatch
+D:\Pulpit\GIT\grafika\Project---Graphics\main_file.cpp(133,21): warning C4018: '<': signed/unsigned mismatch
+D:\Pulpit\GIT\grafika\Project---Graphics\main_file.cpp(144,20): warning C4018: '<': signed/unsigned mismatch
+D:\Pulpit\GIT\grafika\Project---Graphics\main_file.cpp(268,40): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
+D:\Pulpit\GIT\grafika\Project---Graphics\main_file.cpp(269,40): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
+D:\Pulpit\GIT\grafika\Project---Graphics\main_file.cpp(270,40): warning C4244: '+=': conversion from 'double' to 'float', possible loss of data
+  pl_szkielet_07_win.vcxproj -> D:\Pulpit\GIT\grafika\Project---Graphics\Debug\pl_szkielet_07_win.exe
