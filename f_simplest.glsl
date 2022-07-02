@@ -8,6 +8,7 @@ out vec4 pixelColor; //Zmienna wyjsciowa fragment shadera. Zapisuje sie do niej 
 in vec4 ic; 
 in vec4 n;
 in vec4 l;
+in vec4 l2;
 in vec4 v;
 in vec2 iTexCoord0;
 in vec2 iTexCoord1;
@@ -16,6 +17,7 @@ void main(void) {
 
 	//Znormalizowane interpolowane wektory
 	vec4 ml = normalize(l);
+	//vec4 ml2 = normalize(l2);
 	vec4 mn = normalize(n);
 	vec4 mv = normalize(v);
 	//Wektor odbity
@@ -28,5 +30,5 @@ void main(void) {
 	//Obliczenie modelu oświetlenia
 	float nl = clamp(dot(mn, ml), 0, 1);
 	float rv = pow(clamp(dot(mr, mv), 0, 1), 50);
-	pixelColor= vec4(kd.rgb * nl, kd.a) + vec4(ks.rgb*rv, 0);
+	pixelColor= vec4(kd.rgb * nl, kd.a) + vec4(ks.rgb*(rv), 0);
 }

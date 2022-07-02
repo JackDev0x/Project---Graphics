@@ -68,6 +68,9 @@ ShaderProgram *sp;
 
 Model robot; //Model robota
 Model terrain; //Model terenu
+Model tree1; //Model drzewa
+Model tree2; 
+Model lamp; //Model lampy
 
 //Procedura obsługi błędów
 void error_callback(int error, const char* description) {
@@ -121,8 +124,9 @@ void windowResizeCallback(GLFWwindow* window,int width,int height) {
 
 
 GLuint readTexture(const char* filename) {
-    GLuint tex;
+	GLuint tex;
     glActiveTexture(GL_TEXTURE0);
+	//if (n == 1)glActiveTexture(GL_TEXTURE1);
 
     //Wczytanie do pamięci komputera
     std::vector<unsigned char> image;   //Alokuj wektor do wczytania obrazka
@@ -131,14 +135,13 @@ GLuint readTexture(const char* filename) {
     unsigned error = lodepng::decode(image, width, height, filename);
 
     //Import do pamięci karty graficznej
-    glGenTextures(1, &tex); //Zainicjuj jeden uchwyt
-    glBindTexture(GL_TEXTURE_2D, tex); //Uaktywnij uchwyt
+	glGenTextures(1, &tex); //Zainicjuj jeden uchwyt
+	glBindTexture(GL_TEXTURE_2D, tex); //Uaktywnij uchwyt
     //Wczytaj obrazek do pamięci KG skojarzonej z uchwytem
     glTexImage2D(GL_TEXTURE_2D, 0, 4, width, height, 0,
         GL_RGBA, GL_UNSIGNED_BYTE, (unsigned char*)image.data());
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     return tex;
 }
@@ -202,24 +205,52 @@ void initOpenGLProgram(GLFWwindow* window) {
 	glfwSetKeyCallback(window,keyCallback);
 
 	sp=new ShaderProgram("v_simplest.glsl",NULL,"f_simplest.glsl");
-	terrain.tex = readTexture("terrain_diff.png");
 	robot.tex = readTexture("robot_diff.png");
+	terrain.tex = readTexture("terrain_diff.png");
+	tree1.tex = readTexture("tree_diff.png");
+	tree2.tex = readTexture("tree_diff.png");
+	lamp.tex = readTexture("lamp_diff.png");
 	loadModel(std::string("terrain.obj"), &terrain);
 	loadModel(std::string("robot.obj"), &robot);
+	loadModel(std::string("tree.obj"), &tree1);
+	loadModel(std::string("tree.obj"), &tree2);
+	loadModel(std::string("lamp.obj"), &lamp);
 }
 
 
 //Zwolnienie zasobów zajętych przez program
 void freeOpenGLProgram(GLFWwindow* window) {
     //************Tutaj umieszczaj kod, który należy wykonać po zakończeniu pętli głównej************
-
+	glDeleteTextures(1, &terrain.tex);
+	glDeleteTextures(1, &robot.tex);
     delete sp;
+}
+
+void drawObject(Model object, glm::vec3 position) {
+	glm::mat4 M_object = glm::mat4(1.0f);
+	M_object = glm::translate(M_object, position);
+	glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M_object));
+
+	glEnableVertexAttribArray(sp->a("vertex"));
+	glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, object.verts.data());
+
+	glEnableVertexAttribArray(sp->a("normal"));
+	glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, object.norms.data());
+
+	glEnableVertexAttribArray(sp->a("texCoord"));
+	glVertexAttribPointer(sp->a("texCoord"), 2, GL_FLOAT, false, 0, object.texCoords.data());
+
+	//glUniform1i(sp->u("tex"), 1);
+	//glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, object.tex);
+
+	glDrawElements(GL_TRIANGLES, object.indices.size(), GL_UNSIGNED_INT, object.indices.data());
 }
 
 
 //Procedura rysująca zawartość sceny
 void drawScene(GLFWwindow* window,float angle_z, float speed) {
-	//************Tutaj umieszczaj kod rysujący obraz******************l
+	//************Tutaj umieszczaj kod rysujący obraz******************
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	//Wylicz macierz widoku
@@ -273,29 +304,21 @@ void drawScene(GLFWwindow* window,float angle_z, float speed) {
 	glDrawElements(GL_TRIANGLES, robot.indices.size(), GL_UNSIGNED_INT, robot.indices.data());
 
 	//-----Teren------
-	glm::mat4 M_terrain = glm::mat4(1.0f);
-	glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M_terrain));
+	drawObject(terrain, glm::vec3());
 
-	glEnableVertexAttribArray(sp->a("vertex"));  //Włącz przesyłanie danych do atrybutu vertex
-	glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, terrain.verts.data());
+	//-----Drzewo------
+	drawObject(tree1, glm::vec3(20.0f, 20.0f, 0.0f));
+	drawObject(tree2, glm::vec3(-10.0f, 15.0f, 0.0f));
+	drawObject(lamp, glm::vec3(15.0f, 15.0f, 0.0f));
 
-	glEnableVertexAttribArray(sp->a("normal"));
-	glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, terrain.norms.data());
 
-	glEnableVertexAttribArray(sp->a("texCoord"));
-	glVertexAttribPointer(sp->a("texCoord"), 2, GL_FLOAT, false, 0, terrain.texCoords.data());
-
-	glUniform1i(sp->u("tex"), 1);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, terrain.tex);
-
-	glDrawElements(GL_TRIANGLES, terrain.indices.size(), GL_UNSIGNED_INT, terrain.indices.data());
-
-	//------
-    glDisableVertexAttribArray(sp->a("vertex"));  //Wyłącz przesyłanie danych do atrybutu vertex
-	//glDisableVertexAttribArray(sp->a("color"));  //Wyłącz przesyłanie danych do atrybutu color
+	glDisableVertexAttribArray(sp->a("vertex"));  //Wyłącz przesyłanie danych do atrybutu vertex
 	glDisableVertexAttribArray(sp->a("normal"));  //Wyłącz przesyłanie danych do atrybutu normal
 	glDisableVertexAttribArray(sp->a("texCoord"));  //Wyłącz przesyłanie danych do atrybutu texCoord0
+
+	glm::vec4 r1_pos = glm::vec4(15.0f, 15.0f, 6.4f, 1.0f);
+	//::cout << r1_pos.x << " " << r1_pos.y << " " << r1_pos.z << " " << std::endl;
+	glUniform4fv(sp->u("rf1"), 1, glm::value_ptr(r1_pos));
 
     glfwSwapBuffers(window); //Przerzuć tylny bufor na przedni
 
@@ -330,7 +353,7 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 
-	window = glfwCreateWindow(500, 500, "OpenGL", NULL, NULL);  //Utwórz okno 500x500 o tytule "OpenGL" i kontekst OpenGL.
+	window = glfwCreateWindow(1000, 1000, "OpenGL", NULL, NULL);  //Utwórz okno 500x500 o tytule "OpenGL" i kontekst OpenGL.
 
 	if (!window) //Jeżeli okna nie udało się utworzyć, to zamknij program
 	{
