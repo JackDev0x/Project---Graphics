@@ -39,7 +39,7 @@ Place, Fifth Floor, Boston, MA  02110 - 1301  USA
 #include <postprocess.h>
 
 float robot_speed = 0; //prędkość chodzenia robota
-float max_robot_speed = 5; //maksymalna prędkość chodzenia robota
+float max_robot_speed = 0.05f; //maksymalna prędkość chodzenia robota
 float robot_rotation_speed = 0;
 
 float cam_speed_x = 0;
@@ -56,12 +56,13 @@ bool is_pressed_s = false;
 bool is_pressed_a = false;
 bool is_pressed_d = false;
 
-bool auto_pilot = true;
+//bool auto_pilot = true;
 
 float aspectRatio=1;
 
 glm::vec3 cam_position = glm::vec3(0, -25, 20);
 glm::vec3 cam_looking_p = glm::vec3(0.0f,0.0f,0.0f);
+glm::vec3 pos = glm::vec3();
 
 ShaderProgram *sp;
 
@@ -83,19 +84,19 @@ void keyCallback(GLFWwindow* window,int key,int scancode,int action,int mods) {
 		if (key == GLFW_KEY_DOWN) cam_speed_y = -max_cam_speed;
 		//robot
 		if (key == GLFW_KEY_A) {
-			robot_rotation_speed = PI / 2;
+			robot_rotation_speed = PI / 8;
 			is_pressed_a = true;
 			if (!is_pressed_w && !is_pressed_s)
 				robot_speed = 0;
 		}
 		if (key == GLFW_KEY_D) {
-			robot_rotation_speed = -PI / 2;
+			robot_rotation_speed = -PI / 8;
 			is_pressed_d = true;
 			if (!is_pressed_w && !is_pressed_s)
 				robot_speed = 0;
 		}
 		if (key == GLFW_KEY_W) { robot_speed = max_robot_speed; is_pressed_w = true; }
-		if (key == GLFW_KEY_S) { robot_speed = -max_robot_speed; is_pressed_s = true; }
+		if (key == GLFW_KEY_S) { robot_speed = -max_robot_speed/2; is_pressed_s = true; }
     }
     if (action==GLFW_RELEASE) {
 		//kamera
@@ -216,27 +217,36 @@ void freeOpenGLProgram(GLFWwindow* window) {
 }
 
 
-
-
 //Procedura rysująca zawartość sceny
 void drawScene(GLFWwindow* window,float angle_z, float speed) {
 	//************Tutaj umieszczaj kod rysujący obraz******************l
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	//Wylicz macierz widoku
 	glm::mat4 V=glm::lookAt(
 		 cam_position,
          cam_looking_p,
-         glm::vec3(0.0f,0.0f,1.0f)); //Wylicz macierz widoku
+         glm::vec3(0.0f,0.0f,1.0f)); 
 
-    glm::mat4 P=glm::perspective(50.0f*PI/180.0f, aspectRatio, 0.01f, 100.0f); //Wylicz macierz rzutowania
+	//Wylicz macierz rzutowania
+    glm::mat4 P=glm::perspective(50.0f*PI/180.0f, aspectRatio, 0.01f, 100.0f); 
 
 	//wyliczanie pozycji kamery
 	cam_position += glm::vec3(cam_speed_x, cam_speed_y, 0.0f);
 	cam_looking_p += glm::vec3(cam_speed_x, cam_speed_y,0.0f);
 	
-	glm::mat4 M = glm::mat4(1.0f);
+	glm::mat4 M = glm::mat4(
+		1.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, 0.0f,
+		0.0f, 0.0f, 1.0f, 0.0f,
+		pos.x, pos.y, 0.0f, 1.0f
+	);
+
 	M = glm::rotate(M, angle_z, glm::vec3(0.0f, 0.0f, 1.0f));
 	M = glm::translate(M, glm::vec3(0.0f, speed, 0.0f));
+
+	pos = glm::vec3(M[3][0], M[3][1], 0.0f);
+	//std::cout << M[3][0] << " " << M[3][1] << " " << M[3][2] << std::endl;
 	
     sp->use();//Aktywacja programu cieniującego
     //Przeslij parametry programu cieniującego do karty graficznej
@@ -263,8 +273,8 @@ void drawScene(GLFWwindow* window,float angle_z, float speed) {
 	glDrawElements(GL_TRIANGLES, robot.indices.size(), GL_UNSIGNED_INT, robot.indices.data());
 
 	//-----Teren------
-	glm::mat4 M_tarrain = glm::mat4(1.0f);
-	glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M_tarrain));
+	glm::mat4 M_terrain = glm::mat4(1.0f);
+	glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M_terrain));
 
 	glEnableVertexAttribArray(sp->a("vertex"));  //Włącz przesyłanie danych do atrybutu vertex
 	glVertexAttribPointer(sp->a("vertex"), 4, GL_FLOAT, false, 0, terrain.verts.data());
@@ -296,14 +306,15 @@ void autoPilot() {
 	auto_time += glfwGetTime();
 
 	if (auto_time > t1)
-		robot_rotation_speed = sign * PI / 2;
+		robot_rotation_speed = sign * PI / 8;
 	if (auto_time > t2) {
 		robot_rotation_speed = 0;
 		auto_time = 0;
 		srand(time(NULL));
-		t1 = (rand() % 50 + 5) / 10.0f;
-		t2 = t1 + (rand() % 20 + 1) / 10.0f;
-		sign = rand() % 2 - 1;
+		t1 = (rand() % 40 + 5) / 10.0f;
+		t2 = t1 + (rand() % 40 + 5) / 10.0f;
+		sign = rand() % 3 - 1;
+		std::cout << sign << std::endl;
 	}
 }
 
@@ -350,10 +361,10 @@ int main(void)
 		}
 
         angle_z+= robot_rotation_speed*glfwGetTime(); //Zwiększ/zmniejsz kąt obrotu na podstawie prędkości i czasu jaki upłynał od poprzedniej klatki
-		walk_speed += robot_speed * glfwGetTime();
+		//walk_speed += robot_speed *glfwGetTime();
 		
         glfwSetTime(0); //Zeruj timer
-		drawScene(window,angle_z,walk_speed); //Wykonaj procedurę rysującą
+		drawScene(window,angle_z,robot_speed); //Wykonaj procedurę rysującą
 		glfwPollEvents(); //Wykonaj procedury callback w zalezności od zdarzeń jakie zaszły.
 	}
 
