@@ -87,13 +87,13 @@ void keyCallback(GLFWwindow* window,int key,int scancode,int action,int mods) {
 		if (key == GLFW_KEY_DOWN) cam_speed_y = -max_cam_speed;
 		//robot
 		if (key == GLFW_KEY_A) {
-			robot_rotation_speed = PI / 8;
+			robot_rotation_speed = PI / 4;
 			is_pressed_a = true;
 			if (!is_pressed_w && !is_pressed_s)
 				robot_speed = 0;
 		}
 		if (key == GLFW_KEY_D) {
-			robot_rotation_speed = -PI / 8;
+			robot_rotation_speed = -PI / 4;
 			is_pressed_d = true;
 			if (!is_pressed_w && !is_pressed_s)
 				robot_speed = 0;
@@ -211,7 +211,7 @@ void initOpenGLProgram(GLFWwindow* window) {
 	tree2.tex = readTexture("tree_diff.png");
 	lamp.tex = readTexture("lamp_diff.png");
 	loadModel(std::string("terrain.obj"), &terrain);
-	loadModel(std::string("robot.obj"), &robot);
+	loadModel(std::string("robot.dae"), &robot);
 	loadModel(std::string("tree.obj"), &tree1);
 	loadModel(std::string("tree.obj"), &tree2);
 	loadModel(std::string("lamp.obj"), &lamp);
@@ -226,9 +226,11 @@ void freeOpenGLProgram(GLFWwindow* window) {
     delete sp;
 }
 
-void drawObject(Model object, glm::vec3 position) {
+void drawObject(Model object, glm::vec3 position, float rotation, float scale) {
 	glm::mat4 M_object = glm::mat4(1.0f);
 	M_object = glm::translate(M_object, position);
+	M_object = glm::rotate(M_object, rotation, glm::vec3(0.0f, 0.0f, 1.0f));
+	M_object = glm::scale(M_object, glm::vec3(scale, scale, scale));
 	glUniformMatrix4fv(sp->u("M"), 1, false, glm::value_ptr(M_object));
 
 	glEnableVertexAttribArray(sp->a("vertex"));
@@ -270,7 +272,7 @@ void drawScene(GLFWwindow* window,float angle_z, float speed) {
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
 		0.0f, 0.0f, 1.0f, 0.0f,
-		pos.x, pos.y, 0.0f, 1.0f
+		pos.x, pos.y, 3.0f, 1.0f
 	);
 
 	M = glm::rotate(M, angle_z, glm::vec3(0.0f, 0.0f, 1.0f));
@@ -304,12 +306,12 @@ void drawScene(GLFWwindow* window,float angle_z, float speed) {
 	glDrawElements(GL_TRIANGLES, robot.indices.size(), GL_UNSIGNED_INT, robot.indices.data());
 
 	//-----Teren------
-	drawObject(terrain, glm::vec3());
+	drawObject(terrain, glm::vec3(), 0.0f, 1.0f);
 
 	//-----Drzewo------
-	drawObject(tree1, glm::vec3(20.0f, 20.0f, 0.0f));
-	drawObject(tree2, glm::vec3(-10.0f, 15.0f, 0.0f));
-	drawObject(lamp, glm::vec3(15.0f, 15.0f, 0.0f));
+	drawObject(tree1, glm::vec3(20.0f, 20.0f, 0.0f), 0.0f, 2.0f);
+	drawObject(tree2, glm::vec3(-10.0f, 15.0f, 0.0f), 25.5f, 0.8f);
+	drawObject(lamp, glm::vec3(15.0f, 15.0f, 0.0f), 0.0f, 0.75f);
 
 
 	glDisableVertexAttribArray(sp->a("vertex"));  //Wyłącz przesyłanie danych do atrybutu vertex
@@ -329,7 +331,7 @@ void autoPilot() {
 	auto_time += glfwGetTime();
 
 	if (auto_time > t1)
-		robot_rotation_speed = sign * PI / 8;
+		robot_rotation_speed = sign * PI / 4;
 	if (auto_time > t2) {
 		robot_rotation_speed = 0;
 		auto_time = 0;
