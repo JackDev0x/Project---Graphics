@@ -40,37 +40,37 @@ Place, Fifth Floor, Boston, MA  02110 - 1301  USA
 
 float robot_speed = 0; //prędkość chodzenia robota
 float max_robot_speed = 0.05f; //maksymalna prędkość chodzenia robota
-float robot_rotation_speed = 0;
+float robot_rotation_speed = 0; //prędkość obrotu robota
 
-float cam_speed_x = 0;
-float cam_speed_y = 0;
+float cam_speed_x = 0; //prędkość kamery w osi X
+float cam_speed_y = 0; //prędkość kamery w osi Y
 float max_cam_speed = 1; //maksymalna prędkość kamery
 
-double auto_time = 0;
-double t1 = 0.5f;
-double t2 = 0.6f;
+double auto_time = 0; //aktualna ilość czasu na autopilocie
+double t1 = 0.0f; //wylosowany czas do następnego ruchu autopilota
+double t2 = 0.0f; //wylosowany czas następnego obrotu na autopilocie
 int sign = 1;
 
+//-----czy przyciski WASD są wciśnięte? 
 bool is_pressed_w = false;
 bool is_pressed_s = false;
 bool is_pressed_a = false;
 bool is_pressed_d = false;
-
-//bool auto_pilot = true;
-
-float aspectRatio=1;
-
-glm::vec3 cam_position = glm::vec3(0, -25, 20);
-glm::vec3 cam_looking_p = glm::vec3(0.0f,0.0f,0.0f);
-glm::vec3 pos = glm::vec3();
-
-ShaderProgram *sp;
+//------
 
 Model robot; //Model robota
 Model terrain; //Model terenu
 Model tree1; //Model drzewa
-Model tree2; 
+Model tree2;
 Model lamp; //Model lampy
+
+glm::vec3 cam_position = glm::vec3(0, -25, 20); //pozycja kamery
+glm::vec3 cam_looking_p = glm::vec3(0.0f,0.0f,0.0f); //punkt na który patrzy kamera
+glm::vec3 pos = glm::vec3(); //pozycja robota
+
+float aspectRatio = 1;
+
+ShaderProgram *sp;
 
 //Procedura obsługi błędów
 void error_callback(int error, const char* description) {
@@ -126,7 +126,6 @@ void windowResizeCallback(GLFWwindow* window,int width,int height) {
 GLuint readTexture(const char* filename) {
 	GLuint tex;
     glActiveTexture(GL_TEXTURE0);
-	//if (n == 1)glActiveTexture(GL_TEXTURE1);
 
     //Wczytanie do pamięci komputera
     std::vector<unsigned char> image;   //Alokuj wektor do wczytania obrazka
@@ -268,6 +267,7 @@ void drawScene(GLFWwindow* window,float angle_z, float speed) {
 	cam_position += glm::vec3(cam_speed_x, cam_speed_y, 0.0f);
 	cam_looking_p += glm::vec3(cam_speed_x, cam_speed_y,0.0f);
 	
+	//Wylicz macierz robota
 	glm::mat4 M = glm::mat4(
 		1.0f, 0.0f, 0.0f, 0.0f,
 		0.0f, 1.0f, 0.0f, 0.0f,
@@ -290,9 +290,6 @@ void drawScene(GLFWwindow* window,float angle_z, float speed) {
     glEnableVertexAttribArray(sp->a("vertex"));  //Włącz przesyłanie danych do atrybutu vertex
 	glVertexAttribPointer(sp->a("vertex"),4,GL_FLOAT,false,0, robot.verts.data()); //Wskaż tablicę z danymi dla atrybutu vertex
 
-	//glEnableVertexAttribArray(sp->a("color"));  //Włącz przesyłanie danych do atrybutu color
-	//glVertexAttribPointer(sp->a("color"), 4, GL_FLOAT, false, 0, colors); //Wskaż tablicę z danymi dla atrybutu color
-
 	glEnableVertexAttribArray(sp->a("normal"));  //Włącz przesyłanie danych do atrybutu normal
 	glVertexAttribPointer(sp->a("normal"), 4, GL_FLOAT, false, 0, robot.norms.data()); //Wskaż tablicę z danymi dla atrybutu normal
 
@@ -308,17 +305,19 @@ void drawScene(GLFWwindow* window,float angle_z, float speed) {
 	//-----Teren------
 	drawObject(terrain, glm::vec3(), 0.0f, 1.0f);
 
-	//-----Drzewo------
+	//-----Drzewa------
 	drawObject(tree1, glm::vec3(20.0f, 20.0f, 0.0f), 0.0f, 2.0f);
 	drawObject(tree2, glm::vec3(-10.0f, 15.0f, 0.0f), 25.5f, 0.8f);
-	drawObject(lamp, glm::vec3(15.0f, 15.0f, 0.0f), 0.0f, 0.75f);
+
+	//-----Lampa-----
+	drawObject(lamp, glm::vec3(50.0f, 50.0f, 0.0f), 0.0f, 0.75f);
 
 
 	glDisableVertexAttribArray(sp->a("vertex"));  //Wyłącz przesyłanie danych do atrybutu vertex
 	glDisableVertexAttribArray(sp->a("normal"));  //Wyłącz przesyłanie danych do atrybutu normal
 	glDisableVertexAttribArray(sp->a("texCoord"));  //Wyłącz przesyłanie danych do atrybutu texCoord0
 
-	glm::vec4 r1_pos = glm::vec4(15.0f, 15.0f, 6.4f, 1.0f);
+	glm::vec4 r1_pos = glm::vec4(50.0f, 50.0f, 7.0f, 1.0f);
 	//::cout << r1_pos.x << " " << r1_pos.y << " " << r1_pos.z << " " << std::endl;
 	glUniform4fv(sp->u("rf1"), 1, glm::value_ptr(r1_pos));
 
@@ -355,7 +354,7 @@ int main(void)
 		exit(EXIT_FAILURE);
 	}
 
-	window = glfwCreateWindow(1000, 1000, "OpenGL", NULL, NULL);  //Utwórz okno 500x500 o tytule "OpenGL" i kontekst OpenGL.
+	window = glfwCreateWindow(1000, 1000, "ROBOT", NULL, NULL);
 
 	if (!window) //Jeżeli okna nie udało się utworzyć, to zamknij program
 	{
@@ -375,7 +374,6 @@ int main(void)
 	initOpenGLProgram(window); //Operacje inicjujące
 
 	//Główna pętla
-	float angle_x=0; //Aktualny kąt obrotu obiektu
 	float angle_z=0; //Aktualny kąt obrotu obiektu
 	float walk_speed = 0;
 	glfwSetTime(0); //Zeruj timer
