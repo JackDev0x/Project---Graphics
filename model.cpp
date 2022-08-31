@@ -10,6 +10,7 @@
 class Model {
 public:
     GLuint tex;
+    GLuint normalTex;
     std::vector<glm::vec4> verts;
     std::vector<glm::vec4> norms;
     std::vector<unsigned int> indices;

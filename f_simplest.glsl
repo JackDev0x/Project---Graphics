@@ -26,7 +26,7 @@ void main(void) {
 	vec4 mr_rf = reflect(-ml_rf, mn);
 
 	//Parametry powierzchni
-	vec4 kd = mix(texture(textureMap0,iTexCoord0),texture(textureMap1, iTexCoord1),0.3);
+	vec4 kd = texture(textureMap0,iTexCoord0);
 	vec4 ks = vec4(1,1,1,1);
 
 	//Obliczenie modelu oświetlenia

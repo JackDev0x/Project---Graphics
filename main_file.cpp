@@ -123,9 +123,10 @@ void windowResizeCallback(GLFWwindow* window,int width,int height) {
 }
 
 
-GLuint readTexture(const char* filename) {
+GLuint readTexture(const char* filename, int n) {
 	GLuint tex;
-    glActiveTexture(GL_TEXTURE0);
+    if (n == 0) glActiveTexture(GL_TEXTURE0);
+	if (n == 1) glActiveTexture(GL_TEXTURE1);
 
     //Wczytanie do pamięci komputera
     std::vector<unsigned char> image;   //Alokuj wektor do wczytania obrazka
@@ -204,11 +205,12 @@ void initOpenGLProgram(GLFWwindow* window) {
 	glfwSetKeyCallback(window,keyCallback);
 
 	sp=new ShaderProgram("v_simplest.glsl",NULL,"f_simplest.glsl");
-	robot.tex = readTexture("robot_diff.png");
-	terrain.tex = readTexture("terrain_diff.png");
-	tree1.tex = readTexture("tree_diff.png");
-	tree2.tex = readTexture("tree_diff.png");
-	lamp.tex = readTexture("lamp_diff.png");
+	robot.tex = readTexture("robot_diff.png",0);
+	terrain.tex = readTexture("terrain_diff.png",0);
+	//terrain.normalTex = readTexture("terrain_norm.png",1);
+	tree1.tex = readTexture("tree_diff.png",0);
+	tree2.tex = readTexture("tree_diff.png",0);
+	lamp.tex = readTexture("lamp_diff.png",0);
 	loadModel(std::string("terrain.obj"), &terrain);
 	loadModel(std::string("robot.dae"), &robot);
 	loadModel(std::string("tree.obj"), &tree1);
@@ -221,6 +223,9 @@ void initOpenGLProgram(GLFWwindow* window) {
 void freeOpenGLProgram(GLFWwindow* window) {
     //************Tutaj umieszczaj kod, który należy wykonać po zakończeniu pętli głównej************
 	glDeleteTextures(1, &terrain.tex);
+	glDeleteTextures(1, &tree1.tex);
+	glDeleteTextures(1, &tree2.tex);
+	glDeleteTextures(1, &lamp.tex);
 	glDeleteTextures(1, &robot.tex);
     delete sp;
 }
@@ -241,9 +246,9 @@ void drawObject(Model object, glm::vec3 position, float rotation, float scale) {
 	glEnableVertexAttribArray(sp->a("texCoord"));
 	glVertexAttribPointer(sp->a("texCoord"), 2, GL_FLOAT, false, 0, object.texCoords.data());
 
-	//glUniform1i(sp->u("tex"), 1);
-	//glActiveTexture(GL_TEXTURE0);
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, object.tex);
+	glUniform1i(sp->u("tex"), 0);
 
 	glDrawElements(GL_TRIANGLES, object.indices.size(), GL_UNSIGNED_INT, object.indices.data());
 }
